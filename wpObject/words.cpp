@@ -30,22 +30,17 @@
 
 #include "sqlexception.h"
 
-const char* ERROR_SERVER_NOT_FOUND = "server not found";
-int Length_ERROR_SERVER_NOT_FOUND = 16;
-
 wxString chartDirectorLicenseKey = "RDST-34TK-G7J8-KCGZ-9D55-418A";
 // round X to n dec digit
-
-
+constexpr float HALF = 0.5F;
 double RoundIt(double x, double n) {
-	return floor( x * pow(10.0, n) + 0.5) / pow(10.0, n);
+    return floor(x * pow(POWEROF10, n) + HALF) / pow(POWEROF10, n);
 }
 
 double TruncIt(double x, double n) {
-    return floor( x * pow(10.0, n)) / pow(10.0, n);
+    return floor( x * pow(POWEROF10, n)) / pow(POWEROF10, n);
 }
 
-int wpFACTOR_TO_CENTS = 10000;
 double wp_nDec = 4;
 double wp_nDec_display = 2;
 
@@ -73,14 +68,14 @@ wxLongLong GetValueInCents(const wxString& v) {
 			continue;
 		}
 		if (decFound) {
-			if (--nDec < 0)
-				break;
+			if (--nDec < 0) { break;}
 		}
-		d = d * 10 + (char(*it) - '0');
+		d = d * POWEROF10 + (char(*it) - '0');
 	}
-    if (isNegative) d = -d;
-	if (nDec > 0)
-		d *= pow(float(10), nDec);
+    if (isNegative) {d = -d;}
+	if (nDec > 0) {
+		d *= pow(POWEROF10, nDec);
+	}
 	return d;
 }
 
@@ -98,7 +93,7 @@ void WriteStringToFile(const wxString &fileName, const wxString &str) {
 }
 
 wxString ReadStringFromFile(const wxString &fileName) {
-	if (!wxFileExists(fileName)) return "";
+	if (!wxFileExists(fileName)) {return "";}
 	wxFileInputStream fIn(fileName);
 	wxStringOutputStream sOut;
 	sOut.Write(fIn);
@@ -106,6 +101,7 @@ wxString ReadStringFromFile(const wxString &fileName) {
 }
 
 wxString CheckFTSCharacters(const wxString &matchStr) {
+	constexpr char SINGLEQUOTE = 0x39;
 	wxString res;
 	int sz = matchStr.Length();
 	wxString src;
@@ -113,7 +109,7 @@ wxString CheckFTSCharacters(const wxString &matchStr) {
 		src = matchStr.Mid(0, maxFTSLength);
 		int nTrimmed = 0;
 		for (wxString::reverse_iterator it = src.rbegin(); it != src.rend(); it++) {
-			if (*it == ' ') break;
+			if (*it == ' ') {break;}
 			nTrimmed++;
 		}
 		sz = maxFTSLength - nTrimmed;
@@ -125,7 +121,7 @@ wxString CheckFTSCharacters(const wxString &matchStr) {
 	bool prevBlank = false;
 	for (wxString::const_iterator it = src.begin(); it != src.end(); it++) {
 		bool isSpc = wxIsspace(*it);
-		if (isSpc && prevBlank) continue;
+		if (isSpc && prevBlank) {continue;}
 		wxChar v = *it;
 		if (wxIsalnum(v)) {
 			res.Append(v);
@@ -141,7 +137,7 @@ wxString CheckFTSCharacters(const wxString &matchStr) {
 			case ';':
 			case '\'':
 			case '"':
-			case 0x39: // single quote
+			case SINGLEQUOTE: // single quote
 			case '(':
 			case ')':
 			case '<':
@@ -168,9 +164,9 @@ wxString CheckFTSCharacters(const wxString &matchStr) {
 				res.Append(" "); isSpc = true;
 				break;
 			default:
-				if (wxIsprint(v))
+				if (wxIsprint(v)) {
 					res.Append(wxChar(v)); // used to tolower(*it);
-				else {
+				} else {
 					res.Append(" ");
 					isSpc = true;
 				}
@@ -191,7 +187,7 @@ wxString CheckFTSCharacters(const wxString &matchStr) {
 		wxString t = tok.GetNextToken();
 		if (t.Length() > 1) {
 			i++;
-			if (i>maxFTSToken && maxFTSToken > 0) break;
+			if (i>maxFTSToken && maxFTSToken > 0) {break;}
 			res2.Append(delim + t);
 			delim = " ";
 		}
@@ -245,16 +241,14 @@ wxString GetActualValue(const wxString &s, int nDecPoint) {
     if ((iDot = s.Find('.')) != wxNOT_FOUND) {
         if (iDot == 0) {
 			t=wxEmptyString;
-		}
-        else {
+		} else {
             t = s.Mid(0, iDot);
 		}
     }
 	t.Trim(); t.Trim(false);
     if (t.IsEmpty()) { 
 		t = "000";
-	}
-	else {
+	} else {
 		if (t[0] == '-') {
 			neg=true;
 			t.erase(0,1);
@@ -345,13 +339,13 @@ int digitsForPackIDLength = 1;
 
 constexpr int ID_LENGTH = 18;
 bool ParseBarcode(const wxString &id, wxString &receiveID, wxString &packID, wxChar filler) {
-    if ((id.Length() != ID_LENGTH)) return false;
+    if (id.Length() != ID_LENGTH) {return false;}
     int ridLength = wxAtoi(id.Mid(0, digitsForReceiveIDLength));
     int pidLength = wxAtoi(id.Mid(digitsForReceiveIDLength, digitsForPackIDLength));
     int strLen = digitsForReceiveIDLength + digitsForPackIDLength + ridLength + pidLength + 1;
-    if (!IsCheckDigitOK(id.Mid(0, strLen))) return false;
+    if (!IsCheckDigitOK(id.Mid(0, strLen))) {return false;}
     for (wxString::const_iterator it = id.begin() + strLen; it != id.end(); it++) {
-        if ((*it != filler)) return false;
+        if (*it != filler) {return false;}
     }
     receiveID = id.Mid(digitsForReceiveIDLength + digitsForPackIDLength, ridLength);
     packID = id.Mid(digitsForReceiveIDLength + digitsForPackIDLength + ridLength, pidLength);
@@ -359,13 +353,13 @@ bool ParseBarcode(const wxString &id, wxString &receiveID, wxString &packID, wxC
 }
 
 bool IsBarcodeOK(const wxString &id, wxChar filler) {
-    if ((id.Length() != ID_LENGTH)) return false;
+    if (id.Length() != ID_LENGTH) {return false;}
     int ridLength = wxAtoi(id.Mid(0, digitsForReceiveIDLength));
     int pidLength = wxAtoi(id.Mid(digitsForReceiveIDLength, digitsForPackIDLength));
     int strLen = digitsForReceiveIDLength + digitsForPackIDLength + ridLength + pidLength + 1;
-    if (!IsCheckDigitOK(id.Mid(0, strLen))) return false;
+    if (!IsCheckDigitOK(id.Mid(0, strLen))) {return false;}
     for (wxString::const_iterator it = id.begin() + strLen; it != id.end(); it++) {
-        if ((*it != filler)) return false;
+        if (*it != filler) {return false;}
 	}
 	return true;
 }
@@ -377,18 +371,19 @@ wxString MakeBarcodeID(const wxString &receiveID, const wxString &packID, wxChar
     constexpr int maxLen = ID_LENGTH;
     constexpr int maxBarCharLen = 9;
 
-    if ((receiveID.Length() > maxBarCharLen) || (packID.Length() > maxBarCharLen)) return "";
+    if ((receiveID.Length() > maxBarCharLen) || (packID.Length() > maxBarCharLen)) {return "";}
     wxString id = wxString::Format("%0*d%0*d%s%s", digitsForReceiveIDLength, int(receiveID.length()), digitsForPackIDLength, int(packID.length()), receiveID, packID);
     id.Append(GetCheckDigit(id));
     int oldlen = id.Length();
-    if ((oldlen < maxLen))
-        for (int i = 0; i < (maxLen - oldlen); i++) id.Append(filler);  // just to fill the spaces
+    if ((oldlen < maxLen)) {
+        for (int i = 0; i < (maxLen - oldlen); i++) {
+			id.Append(filler);  // just to fill the spaces
+		}
+	}
     return id;
 }
 
 char GetCheckDigit(const wxString &d) {
-	constexpr int DECIMAL_BASE = 10;
-
 	bool isEven = true;
 	int sumEven = 0;
 	int sumOdd = 0;
@@ -402,7 +397,7 @@ char GetCheckDigit(const wxString &d) {
 	}
 
 	int mod = (sumEven + sumOdd * 3) % DECIMAL_BASE;
-	if (mod != 0) mod = 10 - mod;
+	if (mod != 0) {mod = DECIMAL_BASE - mod;}
 	
 	return char(mod + '0');
 }
@@ -471,11 +466,12 @@ wxString GetRandomWord(int nMax) {
 	return res;
 }
 wxString GetRandomSentence(int nMax) {
+	constexpr int RANDOMNUMBER=8;
 	int nc = GetRandom(1L, nMax);
 	wxString res;
 	for (int i = 0; i < nc; i++) {
-		if (i>0) res.Append(" ");
-		res.Append(GetRandomWord(8));
+		if (i>0) {res.Append(" ");}
+		res.Append(GetRandomWord(RANDOMNUMBER));
 	}
 	return res;
 }
@@ -523,9 +519,9 @@ std::vector<wxString> ParseCSV(const wxString &t) {
 	wxString delim;
 	std::vector<wxString> v;
 	bool checkForBlankField = false;
-	while (tp) {
+	while (*tp != '\0') {
 		tp = String::SkipWhiteSpace(tp);
-		if (*tp == '\0') break;
+		if (*tp == '\0') {break;}
 		if (*tp == ',') {
 			tp++;
 			tp = String::SkipWhiteSpace(tp);
@@ -534,10 +530,10 @@ std::vector<wxString> ParseCSV(const wxString &t) {
 			}
 		}
 		checkForBlankField=false;
-		if (!*tp) break;
+		if (*tp == '\0') {break;}
 		if (*tp == '"') { // delimit by quote
 			tp++;
-			if (*tp == '\0') break;
+			if (*tp == '\0') {break;}
 			if (*tp == '"') {
 				tp++; // empty field
 				v.push_back(wxT(""));
@@ -548,7 +544,7 @@ std::vector<wxString> ParseCSV(const wxString &t) {
 				v.push_back(tmp);
 			}
 		} else { // no delimit by quote
-			if (*tp == '\0') break;
+			if (*tp == '\0') {break;}
 			if (*tp == ',') {
 				tp++; // empty field
 				v.push_back(wxT(""));
@@ -650,21 +646,22 @@ long GetParamLong( const char *s, const char **p ) {
 
 
 wxChar ParsePeriod(const wxString &v, long &yr, long &period) {
+	constexpr int DECIMALFACTOR=10;
 	const wxChar *p = v.c_str();
 	p = String::SkipWhiteSpace(p);
 	period=0;
 	wxChar freq = ' ';
 	while ((*p != '\0') && isdigit(*p) != 0) {
-		period = period * 10 + (*p-'0');
+		period = period * DECIMALFACTOR + (*p-'0');
 		p++;
 	}
-    while ((*p != '\0') && !isdigit(*p) != 0) {
+    while ((*p != '\0') && isdigit(*p) != 0) {
         freq = *p;
         p++;
     }
     yr = 0;
     while ((*p != '\0') && isdigit(*p) != 0) {
-        yr = yr * 10 + (*p - '0');
+        yr = yr * DECIMALFACTOR + (*p - '0');
         p++;
     }
     return toupper(freq);
@@ -693,6 +690,8 @@ wxChar ParsePeriod(const wxString &v, long &yr, long &period) {
 
 
 namespace String {
+	constexpr int MAXCOMPRESSIONLEVEL=9;
+
 	std::shared_ptr<wxMemoryBuffer> UnzipIt(const void *data, size_t len) {
 		wxMemoryInputStream memIn(data, len);
 		wxMemoryOutputStream sout;
@@ -717,7 +716,7 @@ namespace String {
 	}
 	std::shared_ptr<wxMemoryBuffer> ZipIt(const void *buf, size_t inputLen) {
 		auto ZipIt = [](wxMemoryOutputStream &outMem, wxInputStream &inp) {
-			wxZlibOutputStream zip(outMem, 9);
+			wxZlibOutputStream zip(outMem, MAXCOMPRESSIONLEVEL);
 			zip.Write(inp);
 			zip.Close();
 		};
@@ -735,7 +734,7 @@ namespace String {
 
 	std::shared_ptr<wxMemoryBuffer> ZipIt(const std::shared_ptr<wxMemoryBuffer> &str) {
 		auto ZipIt = [](wxMemoryOutputStream &outMem, wxInputStream &inp) {
-			wxZlibOutputStream zip(outMem, 9);
+			wxZlibOutputStream zip(outMem, MAXCOMPRESSIONLEVEL);
 			zip.Write(inp);
 			zip.Close();
 		};
@@ -776,7 +775,7 @@ namespace String {
 	}
 	wxMemoryBuffer ZipIt2(const void *buf, size_t inputLen) {
 		auto ZipIt = [](wxMemoryOutputStream &outMem, wxInputStream &inp) {
-			wxZlibOutputStream zip(outMem, 9);
+			wxZlibOutputStream zip(outMem, MAXCOMPRESSIONLEVEL);
 			zip.Write(inp);
 			zip.Close();
 		};
@@ -794,7 +793,7 @@ namespace String {
 
 	wxMemoryBuffer ZipIt2(const wxMemoryBuffer &str) {
 		auto ZipIt = [](wxMemoryOutputStream &outMem, wxInputStream &inp) {
-			wxZlibOutputStream zip(outMem, 9);
+			wxZlibOutputStream zip(outMem, MAXCOMPRESSIONLEVEL);
 			zip.Write(inp);
 			zip.Close();
 		};
@@ -837,13 +836,13 @@ namespace String {
 
 	std::shared_ptr<wxMemoryBuffer> ToBuffer(const wxString &s) {
 		std::shared_ptr<wxMemoryBuffer> buf(new wxMemoryBuffer);
-		if (!s.IsEmpty()) buf->AppendData(s.mb_str().data(), strlen(s.mb_str().data()));
+		if (!s.IsEmpty()) {buf->AppendData(s.mb_str().data(), strlen(s.mb_str().data()));}
 		return buf;
 	}
 
 	wxMemoryBuffer ToBuffer2(const wxString &s) {
 		wxMemoryBuffer buf;
-		if (!s.IsEmpty()) buf.AppendData(s.mb_str().data(), strlen(s.mb_str().data()));
+		if (!s.IsEmpty()) {buf.AppendData(s.mb_str().data(), strlen(s.mb_str().data()));}
 		return buf;
 	}
 
@@ -857,25 +856,25 @@ namespace String {
 	std::shared_ptr<wxMemoryBuffer> JSONtoBuffer(const wxJSONValue &v) {
 		std::shared_ptr<wxMemoryBuffer> buf(new wxMemoryBuffer);
 		wxString s = String::GetString(v);
-		if (!s.IsEmpty()) buf->AppendData(s.mb_str().data(), strlen(s.mb_str().data()));
+		if (!s.IsEmpty()) {buf->AppendData(s.mb_str().data(), strlen(s.mb_str().data()));}
 		return buf;
 	}
 
 	wxLongLong ToLongLong(const wxString &s) {
 		wxLongLong_t d;
-		if (s.ToLongLong(&d)) return wxLongLong(d);
+		if (s.ToLongLong(&d)) {return wxLongLong(d);}
 		return 0;
 	}
 
 	long ToLong(const wxString &s) {
 		long d;
-		if (s.ToLong(&d)) return d;
+		if (s.ToLong(&d)) {return d;}
 		return 0;
 	}
 
 	double ToDouble(const wxString &s) {
 		double d;
-		if (s.ToDouble(&d)) return d;
+		if (s.ToDouble(&d)) {return d;}
 		return 0.0;
 	}
 
@@ -889,7 +888,8 @@ namespace String {
 	}
 
 	wxString VectorToString(const std::vector<wxString> &v, const wxString &delim) {
-		wxString out, d="";
+		wxString out;
+		wxString d;
 		for (auto const& it : v) {
 			out.Append(d);
 			out.Append(it);
@@ -901,7 +901,7 @@ namespace String {
     int CountChar(const wxString &text, wxChar ch) {
         int n = 0;
         for (wxString::const_iterator it = text.begin(); it != text.end(); it++) {
-            if (*it == ch) n++;
+            if (*it == ch) {n++;}
         }
         return n;
     }
@@ -909,7 +909,7 @@ namespace String {
 	wxString StripBracket(const wxString &t) {
 		const wxChar *p = t.c_str();
 		p = SkipWhiteSpace(p);
-		if (*p != '[') return t;
+		if (*p != '[') { return t;}
 		p++;
 		wxChar *buf = new wxChar[t.Length()];
 		CopyUntil(']', buf, p);
@@ -921,7 +921,7 @@ namespace String {
 	wxString TrimDecimal(const wxString s) {
 		wxString newStr = s;
 		//bool foundDec = false;
-		if (!newStr.Contains(".")) return newStr;
+		if (!newStr.Contains(".")){ return newStr;}
 		size_t l = newStr.Length();
 		size_t newLength = l;
 		bool toTruncate = false;
@@ -946,15 +946,15 @@ namespace String {
 		const char *s = v.c_str();
 		std::string newStr;
 		bool findNum = false;
-		for (; *s; s++) {
-			if (!(isdigit(*s) || *s == '-' || *s == '.')) break;
+		for (; *s != '\0'; s++) {
+			if (!(isdigit(*s) != 0 || *s == '-' || *s == '.')) {break;}
 			if (findNum) {
 				newStr += *s;
 				continue;
 			}
 			if (*s == '0' || *s == ' ') {
 				const char *n = s+1;
-				if (*n != '.') continue;
+				if (*n != '.') {continue;}
 			}
 			newStr += *s;
 			findNum = true;
@@ -964,15 +964,15 @@ namespace String {
 	wxString GetNumber(const wchar_t *s) {
 		wxString newStr;
 		bool findNum = false;
-		for (; *s; s++) {
-			if (!(isdigit(*s) || *s == '-' || *s == '.')) break;
+		for (; *s != '\0'; s++) {
+			if (!(isdigit(*s) != 0 || *s == '-' || *s == '.')) {break;}
 			if (findNum) {
 				newStr += *s;
 				continue;
 			}
 			if (*s == '0' || *s == ' ') {
 				const wchar_t *n = s+1;
-				if (*n != '.') continue;
+				if (*n != '.') {continue;}
 			}
 			newStr += *s;
 			findNum = true;
@@ -981,10 +981,12 @@ namespace String {
 	}
 
 	bool IsValidDate( int year, int month, int day ) {
+		constexpr int NOOFMONTHPERYEAR=12;
+		constexpr int MAXDAY=29;
 		static const int nDayInMonth[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-		if (month <= 0 || day <= 0 || year <= 0 || month > 12) return false;
+		if (month <= 0 || day <= 0 || year <= 0 || month > NOOFMONTHPERYEAR) {return false;}
 		int maxDay = nDayInMonth[month];
-		if (month == 2 && year%4 == 0) maxDay=29;
+		if (month == 2 && year%4 == 0) {maxDay=MAXDAY;}
 		return (day >= 1 && day <= maxDay);
 	}
 
@@ -997,15 +999,15 @@ namespace String {
 	}
 
 	void Replace(wchar_t *dest, wchar_t from, wchar_t to) {
-		while (*dest) {
-			if (*dest == from) *dest=to;
+		while (*dest != '\0') {
+			if (*dest == from) {*dest=to;}
 			dest++;
 		}
 	}
 
 	void Replace(char *dest, char from, char to) {
-		while (*dest) {
-			if (*dest == from) *dest=to;
+		while (*dest != '\0') {
+			if (*dest == from) {*dest=to;}
 			dest++;
 		}
 	}
@@ -1040,14 +1042,14 @@ namespace String {
 //	}
 
 
-	void ReplaceSpaceWithDotsDownward(char *start, char *p) {
+	void ReplaceSpaceWithDotsDownward(const wxChar *start, wxChar *p) {
 		while (p > start) {
-			if (*p != ' ') p--;
-			else break;
+			if (*p != ' ') {p--;}
+			else {break;}
 		}
 		while (p > start) {
-			if (*p == ' ') *p-- = '.';
-			else break;
+			if (*p == ' ') {*p-- = '.';}
+			else {break;}
 		}
 	}
 
@@ -1118,73 +1120,74 @@ namespace String {
 	}
 */
 	wxString FormatSpecial(double v) {
-		static wxChar buf[20];
+		constexpr int MAXSIZE=40;
+		static wxChar buf[MAXSIZE];
 		wxSprintf(buf, wxT("%10.1lf"), v);
 		const wxChar *p = SkipWhiteSpace( buf );
 		wxStrcpy(buf, p);
 		int l = wxStrlen(buf);
-		if (buf[l-1] == '0')
+		if (buf[l-1] == '0') {
 			buf[l-2]='\0';
+		}
 		return buf;
 	}
 
 	void CopyChar( char *buf, const char *src, int len ) {
-		while (*src) {
+		while (*src != '\0') {
 			*buf++ = *src++;
 			len--;
-			if (len <=0) break;
+			if (len <=0) {break;}
 		}
 	}
 	void ClearChar( wxChar *buf, int len) { memset(buf, ' ', len*sizeof(wxChar)); buf[len]='\0'; }
 	void ClearChar( wxChar *buf ) { ClearChar(buf, wxStrlen(buf)); }
 
 	bool IsEmpty(const wchar_t *s) {
-		while (*s) {
-			if (*s != ' ' && *s != '\t' && *s != '\n') return false;
+		while (*s != '\0') {
+			if (*s != ' ' && *s != '\t' && *s != '\n') {return false;}
 			s++;
 		}
 		return true;
 	}
 
 	bool IsEmpty(const wxString &s) {
-		if (s.IsEmpty()) return true;
+		if (s.IsEmpty()) {return true;}
         for (wxString::const_iterator it = s.begin(); it != s.end(); it++) {
-			if (*it != ' ' && *it != '\t' && *it != '\n') return false;
+			if (*it != ' ' && *it != '\t' && *it != '\n') {return false;}
 		}
 		return true;
 	}
 
 	bool IsEmpty(const char *s) {
-		while (*s) {
-			if (*s != ' ' && *s != '\t' && *s != '\n') return false;
+		while (*s != '\0') {
+			if (*s != ' ' && *s != '\t' && *s != '\n') {return false;}
 			s++;
 		}
 		return true;
 	}
 
 	bool IsEmpty(const wchar_t *s, int len) {
-		while (*s) {
-			if (*s != ' ' && *s != '\t' && *s != '\n') return false;
+		while (*s != '\0') {
+			if (*s != ' ' && *s != '\t' && *s != '\n') {return false;}
 			s++;
-			if (--len <=0) break;
+			if (--len <=0) {break;}
 		}
 		return true;
 	}
 
 	bool IsEmpty(const char *s, int len) {
-		while (*s) {
-			if (*s != ' ' && *s != '\t' && *s != '\n') return false;
+		while (*s!= '\0') {
+			if (*s != ' ' && *s != '\t' && *s != '\n') {return false;}
 			s++;
-			if (--len <=0) break;
+			if (--len <=0) {break;}
 		}
 		return true;
 	}
 
 
 	bool IsNumeric(const wchar_t *s) {
-		while (*s) {
-			if (!(wxIsdigit(*s) || *s=='.'))
-				return false;
+		while (*s!= '\0') {
+			if (!(wxIsdigit(*s) || *s=='.')) {return false;}
 			s++;
 		}
 		return true;
@@ -1192,37 +1195,33 @@ namespace String {
 
 	bool IsNumeric(const wxString &str) {
 		for (wxString::const_iterator it = str.begin(); it != str.end(); it++) {
-			if (!(wxIsdigit(*it) || *it=='.' || *it=='-'))
-				return false;
+			if (!(wxIsdigit(*it) || *it=='.' || *it=='-')) {return false;}
 		}
 		return true;
 	}
 
 	bool IsNumeric(const wchar_t *s, int len) {
-		while (*s) {
-			if (!(isdigit(*s) || *s=='.' || *s == '-'))
-				return false;
+		while (*s!= '\0') {
+			if (!(isdigit(*s) != 0 || *s=='.' || *s == '-')) { return false; }
 			s++;
-			if (--len <=0) break;
+			if (--len <=0) {break;}
 		}
 		return true;
 	}
 
 	bool IsNumeric(const char *s) {
-		while (*s) {
-			if (!(isdigit(*s) || *s=='.' || *s == '-'))
-				return false;
+		while (*s!= '\0') {
+			if (!(isdigit(*s) != 0 || *s=='.' || *s == '-')) {return false;}
 			s++;
 		}
 		return true;
 	}
 
 	bool IsNumeric(const char *s, int len) {
-		while (*s) {
-			if (!(isdigit(*s) || *s=='.' || *s=='-'))
-				return false;
+		while (*s!= '\0') {
+			if (!(isdigit(*s) != 0 || *s=='.' || *s=='-')) {return false;}
 			s++;
-			if (--len <=0) break;
+			if (--len <=0) {break;}
 		}
 		return true;
 	}
@@ -1231,21 +1230,21 @@ namespace String {
 		s = SkipWhiteSpace(s);
 		bool spaceFound = false;
 		bool negative = false;
-		for (;*s; s++) {
-			if (*s == ' ') spaceFound = true;
-			else if ((wxIsdigit(*s) || *s == '.' || *s=='-') && !spaceFound) continue;
+		for (;*s != '\0'; s++) {
+			if (*s == ' ') {spaceFound = true;}
+			else if ((wxIsdigit(*s) || *s == '.' || *s=='-') && !spaceFound) {continue;}
 			else if (*s == '-' && !negative) {
 				negative = true;
 				continue;
 			}
-			else return false;
+			else {return false;}
 		}
 		return true;
 	}
 
 	wchar_t *Trim(wchar_t *s) {
 		wchar_t *p = s+wcslen(s)-1;
-		while ( (p >= s) && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n' || *p == 0x0D || *p == 0x0A)) {
+		while ( (p >= s) && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n' || *p == CR || *p == LF)) {
 			*p = '\0';
 			p--;
 		}
@@ -1254,7 +1253,7 @@ namespace String {
 
 	char *Trim(char *s) {
 		char *p = s+strlen(s)-1;
-		while ( (p >= s) && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n' || *p == 0x0D || *p == 0x0A)) {
+		while ( (p >= s) && (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n' || *p == CR || *p == LF)) {
 			*p = '\0';
 			p--;
 		}
@@ -1263,7 +1262,7 @@ namespace String {
 
 	wchar_t *ToLower(wchar_t *s) {
 		wchar_t *p = s;
-		while ( *p ) {
+		while ( *p != '\0' ) {
 			*p = tolower(*p);
 			p++;
 		}
@@ -1272,7 +1271,7 @@ namespace String {
 
 	char *ToLower(char *s) {
 		char *p = s;
-		while ( *p ) {
+		while ( *p != '\0' ) {
 			*p = tolower(*p);
 			p++;
 		}
@@ -1282,23 +1281,10 @@ namespace String {
 	std::string ToLower(const std::string &s) {
 		std::string r;
 		const char *p = s.c_str();
-		for (; *p; p++)
+		for (; *p != '\0'; p++) {
 			r += tolower(*p);
+		}
 		return r;
-	}
-
-	std::string Trim(const std::string &s) {
-		char *p = new char[s.length()+1];
-		if (!p) throw StringException("cannot allocate memory");
-		strcpy(p, s.c_str());
-		std::string v = Trim(p);
-		delete[] p;
-		return v;
-	}
-
-	void TrimString(std::string &s) {
-		size_t l = strlen(Trim( &s[0] ));
-		s.resize(l);
 	}
 
 	void strncpysz(wxChar *dest, const wxChar *orig, size_t len) {
@@ -1320,7 +1306,7 @@ namespace String {
 	}
 
 	const wxChar *SkipEOL( const wxChar *p ){
-		while (*p && *p != '\n') {
+		while (*p != '\0' && *p != '\n') {
 			p++;
 		}
 		if (*p == '\n') {
@@ -1330,28 +1316,28 @@ namespace String {
 	}
 
 	const wchar_t *SkipWhiteSpace(const wchar_t *p) {
-		while ( *p && (*p == ' ' || *p=='\t' || *p == '\r' || *p == '\n') ) {
+		while ( *p != '\0' && (*p == ' ' || *p=='\t' || *p == '\r' || *p == '\n') ) {
 			p++;
 		}
 		return p;
 	}
 
 	const char *SkipWhiteSpace(const char *p) {
-		while ( *p && (*p == ' ' || *p=='\t' || *p == '\r' || *p == '\n') ) {
+		while ( *p != '\0' && (*p == ' ' || *p=='\t' || *p == '\r' || *p == '\n') ) {
 			p++;
 		}
 		return p;
 	}
 
 	const wxChar *SkipNonTabWhiteSpace(const wxChar *p) {
-		while ( *p && *p == ' ' ) {
+		while ( *p != '\0' && *p == ' ' ) {
 			p++;
 		}
 		return p;
 	}
 
 	const char *SkipUntil(char x, const char *p) {
-		while ( *p && *p != x ) {
+		while ( *p != '\0' && *p != x ) {
 			p++;
 		}
 		if (*p == x) {
@@ -1360,7 +1346,7 @@ namespace String {
 		return p;
 	}
 	const wchar_t *SkipUntil(wchar_t x, const wchar_t *p) {
-		while ( *p && *p != x ) {
+		while ( *p != '\0' && *p != x ) {
 			p++;
 		}
 		if (*p == x) {
@@ -1369,7 +1355,7 @@ namespace String {
 		return p;
 	}
 	const char *SkipWhile(char x, const char *p) {
-		while ( *p && *p == x ) {
+		while ( *p != '\0' && *p == x ) {
 			p++;
 		}
 		if (*p == x) {
@@ -1378,35 +1364,35 @@ namespace String {
 		return p;
 	}
 	const wchar_t *SkipWhile(wchar_t x, const wchar_t *p) {
-		while ( *p && *p == x ) p++;
-		if (*p == x) p++;
+		while ( *p != '\0' && *p == x ) {p++;}
+		if (*p == x) {p++;}
 		return p;
 	}
 
 
 	const char *SkipUntilSpace(const char *p) {
-		while ( *p && !(*p == ' ' || *p=='\t' || *p == '\n') ) {
+		while ( *p != '\0' && !(*p == ' ' || *p=='\t' || *p == '\n') ) {
 			p++;
 		}
 		return p;
 	}
 
 	const wchar_t *SkipUntilSpace(const wchar_t *p) {
-		while ( *p && !(*p == ' ' || *p=='\t' || *p == '\n') ) {
+		while ( *p != '\0' && !(*p == ' ' || *p=='\t' || *p == '\n') ) {
 			p++;
 		}
 		return p;
 	}
 
 	const char *SkipUntilNumber(const char *p) {
-		while ( *p && !( isdigit(*p) || *p == '.') ) {
+		while ( *p != '\0' && !( isdigit(*p) != 0 || *p == '.') ) {
 			p++;
 		}
 		return p;
 	}
 
 	const wchar_t *SkipUntilNumber(const wchar_t *p) {
-		while ( *p && !( isdigit(*p) || *p == '.') ) {
+		while ( *p != '\0' && !( isdigit(*p) != 0 || *p == '.') ) {
 			p++;
 		}
 		return p;
@@ -1414,8 +1400,8 @@ namespace String {
 
 	const wchar_t *GetNumber(long &n, const wchar_t *p) {
 		n = 0;
-		while ((isdigit(*p))) {
-			n = n * 10 + (*p - '0');
+		while (isdigit(*p) != 0) {
+			n = n * DECIMAL_BASE + (*p - '0');
 			p++;
 		}
 		return p;
@@ -1423,8 +1409,8 @@ namespace String {
 
 	const char *GetNumber(long &n, const char *p) {
 		n = 0;
-		while ((isdigit(*p))) {
-			n = n * 10 + (*p - '0');
+		while (isdigit(*p) != 0) {
+			n = n * DECIMAL_BASE + (*p - '0');
 			p++;
 		}
 		return p;
@@ -1434,8 +1420,8 @@ namespace String {
 	const wchar_t *CopyUntilSpace(wchar_t *toStr, const wchar_t *orig, size_t len) {
 		const wchar_t *p = SkipWhiteSpace(orig);
 		size_t l=0;
-		while ( *p && *p != ' ' && *p != '\t' && *p != '\n' ) {
-			if (++l < len || len < 0) *toStr++ = *p;
+		while ( *p != '\0' && *p != ' ' && *p != '\t' && *p != '\n' ) {
+			if (++l < len || len < 0) {*toStr++ = *p;}
 			p++;
 		}
 		*toStr='\0';
@@ -1445,8 +1431,8 @@ namespace String {
 	const char *CopyUntilSpace(char *toStr, const char *orig, size_t len) {
 		const char *p = SkipWhiteSpace(orig);
 		size_t l=0;
-		while ( *p && *p != ' ' && *p != '\t' && *p != '\n' ) {
-			if (++l < len || len < 0) *toStr++ = *p;
+		while ( *p != '\0' && *p != ' ' && *p != '\t' && *p != '\n' ) {
+			if (++l < len || len < 0) {*toStr++ = *p;}
 			p++;
 		}
 		*toStr='\0';
@@ -1456,34 +1442,34 @@ namespace String {
 	const wxChar *CopyUntilEqualOrSpace(wxChar *toStr, const wxChar *orig, size_t len) {
 		const wxChar *p = SkipWhiteSpace(orig);
 		size_t l=0;
-		while ( *p && *p != ' ' && *p != '\t' && *p != '\n' && *p != '=') {
-			if (++l < len || len < 0) *toStr++ = *p;
+		while ( *p != '\0' && *p != ' ' && *p != '\t' && *p != '\n' && *p != '=') {
+			if (++l < len || len < 0) {*toStr++ = *p;}
 			p++;
 		}
 		*toStr='\0';
 		p = SkipWhiteSpace(p);
-		if (*p == '=') p++;
+		if (*p == '=') {p++;}
 		return SkipWhiteSpace(p);
 	}
 
 	const wxChar *CopyAttribute(wxChar *toStr, const wxChar *orig, size_t len) {
 		const wxChar *p = SkipWhiteSpace(orig);
 		size_t l=0;
-		while ( *p && *p != ' ' && *p != '\t' && *p != '\n' && *p != '=' && *p != '>') {
-			if (++l < len || len < 0) *toStr++ = *p;
+		while ( *p != '\0' && *p != ' ' && *p != '\t' && *p != '\n' && *p != '=' && *p != '>') {
+			if (++l < len || len < 0) {*toStr++ = *p;}
 			p++;
 		}
 		*toStr='\0';
 		p = SkipWhiteSpace(p);
-		if (*p == '=') p++;
+		if (*p == '=') {p++;}
 		return SkipWhiteSpace(p);
 	}
 
 	const wxChar *CopyTag(wxChar *toStr, const wxChar *orig, size_t len) {
 		const wxChar *p = SkipWhiteSpace(orig);
 		size_t l=0;
-		while ( *p && *p != ' ' && *p != '>' && *p != '\t' && *p != '\n' && !(*p == '/' && *(p+1) == '>')) {
-			if (++l < len || len < 0) *toStr++ = *p;
+		while ( *p != '\0' && *p != ' ' && *p != '>' && *p != '\t' && *p != '\n' && !(*p == '/' && *(p+1) == '>')) {
+			if (++l < len || len < 0) {*toStr++ = *p;}
 			p++;
 		}
 		*toStr='\0';
@@ -1495,60 +1481,60 @@ namespace String {
 	const wxChar *CopyUntilTab(wxChar *toStr, const wxChar *orig, size_t len) {
 		const wxChar *p = SkipNonTabWhiteSpace(orig);
 		size_t l=0;
-		while ( *p && *p != '\t' && *p != '\n') {
-			if (++l < len || len < 0) *toStr++ = *p;
+		while ( *p != '\0' && *p != '\t' && *p != '\n') {
+			if (++l < len || len < 0) {*toStr++ = *p;}
 			p++;
 		}
 		*toStr='\0';
-		if (*p == '\t') p++;
+		if (*p == '\t') {p++;}
 		return SkipNonTabWhiteSpace(p);
 	}
 
 	const wxChar *CopyUntilChar(wxChar *toStr, const wxChar *orig, char delim, size_t len) {
 		const wxChar *p = orig;
 		size_t l=0;
-		while ( *p && *p != delim) {
-			if (++l < len || len < 0) *toStr++ = *p;
+		while ( *p != '\0' && *p != delim) {
+			if (++l < len || len < 0) {*toStr++ = *p;}
 			p++;
 		}
 		*toStr='\0';
-		if (*p == delim) p++;
+		if (*p == delim) {p++;}
 		return p;
 	}
 
 	const char *CopyUntilChar(char *toStr, const char *orig, char delim, size_t len) {
 		const char *p = orig;
 		size_t l = 0;
-		while (*p && *p != delim) {
-			if (++l < len || len < 0) *toStr++ = *p;
+		while (*p != '\0' && *p != delim) {
+			if (++l < len || len < 0) {*toStr++ = *p;}
 			p++;
 		}
 		*toStr = '\0';
-		if (*p == delim) p++;
+		if (*p == delim) {p++;}
 		return p;
 	}
 
 	const wchar_t *CopyUntilCharOrSpace(wchar_t *toStr, const wchar_t *orig, wchar_t delim, size_t len) {
 		const wchar_t *p = orig;
 		size_t l=0;
-		while ( *p && *p != delim && *p != ' ' && *p != '\t' && *p != '\n' ) {
-			if (++l < len || len < 0) *toStr++ = *p;
+		while ( *p != '\0' && *p != delim && *p != ' ' && *p != '\t' && *p != '\n' ) {
+			if (++l < len || len < 0) {*toStr++ = *p;}
 			p++;
 		}
 		*toStr='\0';
-		if (*p == delim) p++;
+		if (*p == delim) {p++;}
 		return p;
 	}
 
 	const char *CopyUntilCharOrSpace(char *toStr, const char *orig, char delim, size_t len) {
 		const char *p = orig;
 		size_t l=0;
-		while ( *p && *p != delim && *p != ' ' && *p != '\t' && *p != '\n' ) {
-			if (++l < len || len < 0) *toStr++ = *p;
+		while ( *p != '\0' && *p != delim && *p != ' ' && *p != '\t' && *p != '\n' ) {
+			if (++l < len || len < 0) {*toStr++ = *p;}
 			p++;
 		}
 		*toStr='\0';
-		if (*p == delim) p++;
+		if (*p == delim) {p++;}
 		return p;
 	}
 
@@ -1556,11 +1542,13 @@ namespace String {
 	int Compare(const wxChar *s1, const wxChar *s2) {
 		const wxChar *p1 = SkipWhiteSpace(s1);
 		const wxChar *p2 = SkipWhiteSpace(s2);
-		while (*p1 && *p1) {
+		while (*p1 != '\0' && *p1 != '\0') {
 			int c = wxStrnicmp(p1, p2, 1);
-			if (c!=0) return c;
-			p1++; p1 = SkipWhiteSpace(p1);
-			p2++; p2 = SkipWhiteSpace(p2);
+			if (c != 0) {return c;}
+			p1++;
+			p1 = SkipWhiteSpace(p1);
+			p2++;
+			p2 = SkipWhiteSpace(p2);
 		}
 		return wxStrnicmp(p1,p2,1);
 	}
@@ -1568,12 +1556,12 @@ namespace String {
 	const wchar_t *CopyUntil(char v, wchar_t *toStr, const wchar_t *orig, size_t len, bool skipWS, bool includeToken) {
 		const wchar_t *p = skipWS ? SkipWhiteSpace(orig) : orig;
 		size_t l=0;
-		while ( *p && *p != v ) {
-			if (++l < len || len < 0) *toStr++ = *p;
+		while ( *p != '\0' && *p != v ) {
+			if (++l < len || len < 0) {*toStr++ = *p;}
 			p++;
 		}
 		if (*p == v) {
-			if (includeToken) *toStr++ = v;
+			if (includeToken) {*toStr++ = v;}
 			p++;
 		}
 		*toStr='\0';
@@ -1582,12 +1570,12 @@ namespace String {
 	const char *CopyUntil(char v, char *toStr, const char *orig, size_t len, bool skipWS, bool includeToken) {
 		const char *p = skipWS ? SkipWhiteSpace(orig) : orig;
 		size_t l=0;
-		while ( *p && *p != v ) {
-			if (++l < len || len < 0) *toStr++ = *p;
+		while ( *p != '\0' && *p != v ) {
+			if (++l < len || len < 0) {*toStr++ = *p;}
 			p++;
 		}
 		if (*p == v) {
-			if (includeToken) *toStr++ = v;
+			if (includeToken) {*toStr++ = v;}
 			p++;
 		}
 		*toStr = '\0';
@@ -1597,9 +1585,9 @@ namespace String {
 	int CountWords(const wxChar *orig) {
 		const wxChar *p = orig;
 		int nWord=0;
-		while (*p) {
+		while (*p != '\0') {
 			p = SkipWhiteSpace(p);
-			if (*p) nWord++;
+			if (*p != '\0') {nWord++;}
 			p = SkipUntilSpace(p);
 		}
 		return nWord;
@@ -1625,16 +1613,17 @@ namespace String {
 
 	const wxChar *stristr(const wxChar *u, const wxChar *s) {
 
-		if (s==NULL) return u;
+		if (s==NULL) {return u;}
 
 		const wxChar *p=u;
 
 		size_t len=wxStrlen(s);
 
-		if (len==0) return u;
+		if (len==0) {return u;}
 
-		for (unsigned int i=0; i<wxStrlen(u); i++, p++)
-			if (wxStrnicmp(p, s,len) == 0) return p;
+		for (unsigned int i=0; i<wxStrlen(u); i++, p++) {
+			if (wxStrnicmp(p, s,len) == 0) {return p;}
+		}
 		return NULL;
 	}
 
@@ -1732,9 +1721,9 @@ long atol(const wchar_t *p, int len) {
 	long u = 0;
 	for (; len > 0; len--, p++) {
 		if (*p == ' ' || *p == '\t') {
-			if (u != 0) break;
-		} else if (wxIsdigit(*p)) u = u*10 + (*p - '0');
-		else break;
+			if (u != 0) {break;}
+		} else if (wxIsdigit(*p)) {u = u*DECIMAL_BASE + (*p - '0');}
+		else {break;}
 	}
 	return u;
 };
@@ -1743,9 +1732,9 @@ long atol(const char *p, int len) {
 	long u = 0;
 	for (; len > 0; len--, p++) {
 		if (*p == ' ' || *p == '\t') {
-			if (u != 0) break;
-		} else if (isdigit(*p)) u = u*10 + (*p - '0');
-		else break;
+			if (u != 0) {break;}
+		} else if (isdigit(*p) != 0) {u = u*DECIMAL_BASE + (*p - '0');}
+		else {break;}
 	}
 	return u;
 };
@@ -1755,16 +1744,16 @@ double atof(const wchar_t *p, int len) {
 	int nDecimal = 0;
 	for (; len > 0; len--, p++) {
 		if (*p == ' ' || *p == '\t') {
-			if (u != 0) break;
+			if (u != 0) {break;}
 		} else if (wxIsdigit(*p)) {
 			if (nDecimal > 0) {
-				u += (*p - '0')/10*nDecimal;
+				u += (*p - '0')/DECIMAL_BASE * nDecimal;
 				nDecimal++;
-			} else
-				u = u*10 + (*p - '0');
-		} else if (*p == '.')
-			nDecimal=1;
-		else break;
+			} else {
+				u = u*DECIMAL_BASE + (*p - '0');
+			}
+		} else if (*p == '.') {nDecimal=1;}
+		else {break;}
 	}
 	return u;
 };
@@ -1772,30 +1761,30 @@ double atof(const wchar_t *p, int len) {
 double atof(const char *p, int len) {
 	double u = 0;
 	int nDecimal = 0;
-	double divisor = 10;
+	double divisor = DECIMAL_BASE;
 	for (; len > 0; len--, p++) {
 		if (*p == ' ' || *p == '\t') {
-			if (u != 0) break;
+			if (u != 0) {break;}
 		} else if (wxIsdigit(*p)) {
 			if (nDecimal > 0) {
 				u += double(*p - '0')/divisor;
 				nDecimal++;
-				divisor *= 10;
-			} else
-				u = u*10 + (*p - '0');
-		} else if (*p == '.')
-			nDecimal=1;
-		else break;
+				divisor *= DECIMAL_BASE;
+			} else {
+				u = u*DECIMAL_BASE + (*p - '0');
+			}
+		} else if (*p == '.') {nDecimal=1;}
+		else {break;}
 	}
 	return u;
 };
 
 wxString String::GetNameOnly(const wxChar *s) {
 	wxString b;
-	for (; *s; s++) {
-		if (wxIsdigit(*s)) continue;
-		if (*s == '#') continue;
-		if (*s == '-') continue;
+	for (; *s  != '\0'; s++) {
+		if (wxIsdigit(*s)) {continue;}
+		if (*s == '#') {continue;}
+		if (*s == '-') {continue;}
 		b.Append(*s);
 	}
 	return b;
@@ -1803,18 +1792,20 @@ wxString String::GetNameOnly(const wxChar *s) {
 
 wxString String::GetNumberOnly(const wxChar *s) {
 	wxString b;
-	for (; *s; s++) {
-		if (isdigit(*s) || *s=='-')
+	for (; *s != '\0'; s++) {
+		if (isdigit(*s) != 0 || *s=='-') {
 			b.Append(*s);
+		}
 	}
 	return b;
 }
 
-wxString String::FormatNumber( int s, int nDec, bool isSwapChar ) {
+wxString String::FormatNumber(int s, int nDec, bool isSwapChar ) {
     wxString v = IntToString(s);
     int len = v.Length();
-    for (int i=0; i <= (nDec - len); i++)
+    for (int i=0; i <= (nDec - len); i++) {
         v = "0"+v;
+	}
     v.insert(v.Length()-nDec, 1, '.');
     return FormatNumber(v, nDec, isSwapChar);
 }

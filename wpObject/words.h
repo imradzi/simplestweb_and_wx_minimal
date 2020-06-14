@@ -10,7 +10,15 @@
 #include <vector>
 #include <memory>
 
-extern int wpFACTOR_TO_CENTS;
+constexpr const char *ERROR_SERVER_NOT_FOUND = "server not found";
+constexpr int Length_ERROR_SERVER_NOT_FOUND = 16;
+constexpr int POWEROF10 = 10;
+constexpr int DECIMAL_BASE = 10;
+constexpr char CR = 0x0D;
+constexpr char LF = 0x0A;
+
+constexpr int wpFACTOR_TO_CENTS = 10000;
+
 extern double wp_nDec;
 extern double wp_nDec_display;
 
@@ -107,6 +115,8 @@ T MapNumericRange(T obs, T obsMin, T obsMax, T prjMin, T prjMax) {
 }
 
 namespace String {
+	constexpr std::string WHITESPACE = " \n\r\t";
+		
 	std::shared_ptr<wxMemoryBuffer> ZipIt(const std::shared_ptr<wxMemoryBuffer> &str);
 	std::shared_ptr<wxMemoryBuffer> UnzipIt(const std::shared_ptr<wxMemoryBuffer> &zipped);
 	std::shared_ptr<wxMemoryBuffer> ZipIt(const void *b, size_t len);
@@ -146,7 +156,7 @@ namespace String {
 	wxString TrimDecimal(const wxString s);
 
 	std::string CombineAt2Ends(const wxChar *left, const wxChar *right, int len);
-	void ReplaceSpaceWithDotsDownward(wxChar *start, wxChar *p);
+	void ReplaceSpaceWithDotsDownward(const wxChar *start, wxChar *p);
 	void Replace(wchar_t *dest, wchar_t from, wchar_t to);
 	void Replace(char *dest, char from, char to);
 
@@ -202,11 +212,23 @@ namespace String {
 	const wxChar *SkipEOL( const wxChar *p );
 
 	wchar_t *Trim(wchar_t *s);
-	std::string Trim(const std::string &s);
 	char *Trim(char *s);
 	char *ToLower(char *s);
 	wchar_t *ToLower(wchar_t *s);
+
 	std::string ToLower(const std::string &s);
+	std::string TrimLeft(const std::string& s) {
+		size_t startpos = s.find_first_not_of(WHITESPACE);
+		return (startpos == std::string::npos) ? std::string() : s.substr(startpos);
+	}
+	std::string TrimRight(const std::string& s) {
+		size_t endpos = s.find_last_not_of(WHITESPACE);
+		return (endpos == std::string::npos) ? std::string() : s.substr(0, endpos+1);
+	}
+	std::string Trim(const std::string& s) { return TrimRight(TrimLeft(s)); }
+	void TrimString(std::string &s) { s = Trim(s); }
+
+
 
 	std::string GetString(const wxChar *buf, long len);
 	void TrimString(std::string &s);
