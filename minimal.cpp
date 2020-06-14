@@ -9,7 +9,7 @@
 
 static void ev_handler(struct mg_connection* nc, int ev, void* p) {
     if (ev == MG_EV_HTTP_REQUEST) {
-        auto s_http_server_opts = (mg_serve_http_opts*)nc->user_data;
+        auto *s_http_server_opts = (mg_serve_http_opts*)nc->user_data;
         mg_serve_http(nc, (struct http_message*)p, *s_http_server_opts);
     }
 }
@@ -51,7 +51,9 @@ auto StartWebServer(int portNo) -> int {
 
 //--------------------- ui
 
-int startPortNo = 8000;
+#define STARTINGPORTNO 8000
+
+int startPortNo = STARTINGPORTNO;
 class MyApp : public wxApp {
     std::unordered_map<int, std::thread> webServerList;
 public:
@@ -96,12 +98,12 @@ auto MyApp::OnInit() -> bool {
 
 
 MyFrame::MyFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title) {
-    auto fileMenu = new wxMenu;
-    auto helpMenu = new wxMenu;
+    auto *fileMenu = new wxMenu;
+    auto *helpMenu = new wxMenu;
     helpMenu->Append(Minimal_About, "&About\tF1", "Show about dialog");
     fileMenu->Append(Minimal_StartWebServer, "Start &Web\tAlt-W", "Start Web Server");
     fileMenu->Append(Minimal_Quit, "E&xit\tAlt-X", "Quit this program");
-    auto menuBar = new wxMenuBar();
+    auto *menuBar = new wxMenuBar();
     menuBar->Append(fileMenu, "&File");
     menuBar->Append(helpMenu, "&Help");
     SetMenuBar(menuBar);
