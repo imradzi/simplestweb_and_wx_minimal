@@ -32,11 +32,9 @@ include(${wxWidgets_USE_FILE})
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-set(PPOS_SOURCE_LIST ppos sqlite mongoose wpObject comm)
+set(PPOS_SOURCE_LIST ppos sqlite mongoose )
 add_subdirectory(sqlite)
 add_subdirectory(mongoose)
-add_subdirectory(wpObject)
-add_subdirectory(comm)
 
 if(MSVC) 
 add_executable(ppos WIN32 main.cpp minimal.cpp)
